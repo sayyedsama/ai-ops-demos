@@ -4,12 +4,13 @@
 
 - 9 open requests; 1 P1, 3 need a human decision.
 - 3 tools under 40% seat use: Relevance.ai, Notetaker X, Recap Bot.
-- 1 consolidation candidate(s); 3 shared prompt(s)/agent(s) need an owner or review.
+- 1 consolidation candidate; 3 shared prompts or agents need an owner or review.
+- About $16,800 a year in seat savings available at renewal, and everyone keeps a tool that does the job.
 
 ## Decisions needed (async, comment by Friday)
 
-1. **Consolidate meeting notes?** Notetaker X, Recap Bot overlap. Proposal: keep the higher-use tool, move seats over at renewal. DRI: [Tool owner]. Two-way door.
-2. **REQ-107: Is it OK to export customer data from Gong into Claude to draft a mutual action plan?** Needs a data-governance answer before anyone proceeds. DRI: [Enterprise AI / Privacy].
+1. **Consolidate meeting notes?** Notetaker X, Recap Bot overlap. Proposal: keep Notetaker X (more active users, enough spare seats) and move Recap Bot users over at renewal, saving about $9,600 a year. DRI: Sales (Recap Bot owner). Two-way door.
+2. **REQ-107: Is it OK to export customer data from Gong into Claude to draft a mutual action plan?** Needs a data-governance answer before anyone proceeds. DRI: Privacy + Enterprise AI.
 
 ## Queue (top first)
 
@@ -44,6 +45,10 @@ Prompts are process: shared, versioned, owned.
 - Outbound sequence agent (owner: none, v1): no owner, review overdue
 - QBR notes summarizer (owner: Partner Ops, v?): unversioned
 - Competitive talk track (owner: Product Marketing, v4): never reviewed
+
+## Rollout announcement draft (for the team channel)
+
+> Claude is now used by 96 people each week, up 26 this month. If you have not tried it yet, the prompt library has ready-to-use starters for account plans and renewal briefs. Questions go in the champions channel, and seat requests take one short form.
 
 ## Next iteration
 

@@ -1,4 +1,4 @@
-# Runs both demos' tests on every push and publishes the ops dashboard with GitLab Pages.
+# Runs both demos' tests on every push and publishes the live ops desk site with GitLab Pages.
 stages: [test, report, deploy]
 
 default:
@@ -26,7 +26,7 @@ pages:
   stage: deploy
   needs: [report]
   script:
-    - mkdir -p public && cp report/dashboard.html public/index.html && cp report/async-update.md public/
+    - python site/build.py && mkdir -p public && cp -r site/. public/ && cp report/async-update.md public/
   artifacts:
     paths: [public]
   rules:

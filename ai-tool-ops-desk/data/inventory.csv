@@ -1,8 +1,8 @@
-tool,aliases,capability,owner,seats
-Claude,claude desktop,assistant,Enterprise AI,120
-Glean,,knowledge search,Enterprise AI,150
-Relevance.ai,relevance,agents,Enterprise AI,25
-Gong,,call insights,Revenue Ops,90
-Notetaker X,notetaker,meeting notes,Field Ops,60
-Recap Bot,recap,meeting notes,Sales,40
-Deck Writer,deckwriter,content drafting,Enablement,50
+tool,aliases,capability,owner,seats,cost_per_seat_month
+Claude,claude desktop,assistant,Enterprise AI,120,30
+Glean,,knowledge search,Enterprise AI,150,25
+Relevance.ai,relevance,agents,Enterprise AI,25,40
+Gong,,call insights,Revenue Ops,90,100
+Notetaker X,notetaker,meeting notes,Field Ops,60,18
+Recap Bot,recap,meeting notes,Sales,40,20
+Deck Writer,deckwriter,content drafting,Enablement,50,15

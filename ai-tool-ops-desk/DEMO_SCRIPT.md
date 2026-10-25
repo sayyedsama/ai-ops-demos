@@ -7,4 +7,4 @@
 0:28 to 0:38. Scroll to Adoption. "One agent platform is at 32% of seats, and two meeting-notes tools overlap."
 0:38 to 0:50. Open `out/async-update.md`. "The weekly update, written like a handbook page: TL;DR, decisions with a DRI, and the prompt registry. Two shared prompts have no owner or are overdue for review."
 0:50 to 0:56. Show `--gitlab-project` in the README and `label-plan.json`. "Point it at a real GitLab project and it plans scoped labels as a dry run first."
-0:56 to 1:00. Show the green CI pipeline or run the tests. "Twelve tests, all passing."
+0:56 to 1:00. Show the green CI pipeline or run the tests. "Every test passing, including one that checks the browser version gives the same answers as the Python one."

@@ -1,15 +1,29 @@
 week,tool,weekly_active_users
 2026-09-28,Claude,70
+2026-10-05,Claude,78
+2026-10-12,Claude,88
 2026-10-19,Claude,96
 2026-09-28,Glean,88
+2026-10-05,Glean,92
+2026-10-12,Glean,97
 2026-10-19,Glean,101
 2026-09-28,Relevance.ai,6
+2026-10-05,Relevance.ai,7
+2026-10-12,Relevance.ai,7
 2026-10-19,Relevance.ai,8
 2026-09-28,Gong,72
+2026-10-05,Gong,73
+2026-10-12,Gong,71
 2026-10-19,Gong,70
 2026-09-28,Notetaker X,31
+2026-10-05,Notetaker X,28
+2026-10-12,Notetaker X,25
 2026-10-19,Notetaker X,22
 2026-09-28,Recap Bot,18
+2026-10-05,Recap Bot,17
+2026-10-12,Recap Bot,16
 2026-10-19,Recap Bot,15
 2026-09-28,Deck Writer,12
+2026-10-05,Deck Writer,15
+2026-10-12,Deck Writer,19
 2026-10-19,Deck Writer,24

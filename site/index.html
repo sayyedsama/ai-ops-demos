@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Tool Ops Desk · live demo with sample data</title>
+<meta name="description" content="A working demo of AI enablement ops: tool inventory, seat use, adoption, request triage with scoped labels, prompt library health and an auto-written weekly update. Sample data.">
+<meta property="og:title" content="AI Tool Ops Desk · live demo">
+<meta property="og:description" content="Messy AI tool requests in. A clean, labeled, owned queue out. Runs in your browser on sample data.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236e49cb'/%3E%3Cpath d='M9 17l5 5 9-12' stroke='%23fca326' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top" aria-label="AI Tool Ops Desk home">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8"/><path d="M9 17l5 5 9-12"/></svg></span>
+      <span>AI Tool Ops Desk</span>
+    </a>
+    <span class="sample-pill" title="Every name, number and request on this page is made up">Sample data</span>
+    <nav class="nav">
+      <a href="#try">Try it</a><a href="#queue">Queue</a><a href="#seats">Seats</a><a href="#adoption">Adoption</a><a href="#prompts">Prompts</a><a href="#update">Weekly update</a>
+    </nav>
+    <a class="gh" href="https://github.com/sayyedsama/ai-ops-demos">View code</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">AI enablement operations, working demo</p>
+      <h1>Messy AI tool requests in.<br><span class="grad">A clean, labeled, owned queue out.</span></h1>
+      <p class="lede">One desk for the ops side of rolling out AI tools to a sales team: what we pay for, who actually uses it, what people are asking for, which shared prompts need an owner, and the weekly update that tells everyone. Same rules as the Python CLI, running right here in your browser.</p>
+      <div class="kpis" id="kpis"></div>
+    </div>
+  </section>
+
+  <section id="try" class="wrap section">
+    <div class="sec-head">
+      <h2>Try it: send a request</h2>
+      <p>Type anything a seller might ask about an AI tool. Watch it get redacted, classified, prioritized, labeled and routed, then land in the queue below. Nothing leaves your browser.</p>
+    </div>
+    <div class="try">
+      <form id="intake" class="panel intake" autocomplete="off">
+        <label for="msg">What do you need?</label>
+        <textarea id="msg" rows="4" placeholder="e.g. Glean is down and it's blocking my customer call today"></textarea>
+        <div class="row">
+          <label for="team" class="sr">Team</label>
+          <select id="team">
+            <option>Enterprise Sales</option><option>Commercial Sales</option><option>Customer Success</option>
+            <option>Sales Development</option><option>Solutions Architects</option><option>Partner Team</option>
+          </select>
+          <button type="submit" class="btn">Route it</button>
+        </div>
+        <div class="chips" id="examples" aria-label="Example requests"></div>
+      </form>
+      <div class="panel result" id="result" aria-live="polite">
+        <ol class="pipe" id="pipe">
+          <li data-step="0"><b>Redact</b><span>strip emails</span></li>
+          <li data-step="1"><b>Spot tools</b><span>match inventory</span></li>
+          <li data-step="2"><b>Classify</b><span>rules first</span></li>
+          <li data-step="3"><b>Prioritize</b><span>urgency + age</span></li>
+          <li data-step="4"><b>Label</b><span>scoped labels</span></li>
+          <li data-step="5"><b>Route</b><span>queue + DRI</span></li>
+        </ol>
+        <div id="outcome" class="outcome empty">
+          <p>Pick an example or write your own, then press <b>Route it</b>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="queue" class="wrap section">
+    <div class="sec-head">
+      <h2>Request triage queue</h2>
+      <p>Sorted by priority, then age. Scoped labels are the same ones the CLI can write back to a real issue tracker as a dry run first.</p>
+    </div>
+    <div class="filters" id="filters" role="toolbar" aria-label="Filter queue"></div>
+    <div class="panel"><ul class="queue" id="queue-list"></ul></div>
+  </section>
+
+  <section id="seats" class="wrap section">
+    <div class="sec-head">
+      <h2>Tool inventory and seat use</h2>
+      <p>Latest week of active users against paid seats. Anything under 40% gets flagged, and tools that do the same job get a consolidation proposal.</p>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><table class="inv" id="inv"></table></div>
+      <div class="panel savings" id="savings"></div>
+    </div>
+  </section>
+
+  <section id="adoption" class="wrap section">
+    <div class="sec-head">
+      <h2>Adoption trends</h2>
+      <p>Weekly active users over the last four weeks. Hover or tap a tool to isolate it.</p>
+    </div>
+    <div class="panel chart-panel">
+      <div id="chart" class="chart"></div>
+      <div id="legend" class="legend"></div>
+    </div>
+  </section>
+
+  <section id="prompts" class="wrap section">
+    <div class="sec-head">
+      <h2>Prompt library health</h2>
+      <p><b>Prompts are process.</b> Every shared prompt or agent needs an owner, a version and a review in the last 90 days, the same way a handbook page does.</p>
+    </div>
+    <div class="prompts" id="prompt-cards"></div>
+  </section>
+
+  <section id="update" class="wrap section">
+    <div class="sec-head">
+      <h2>The weekly update, written for you</h2>
+      <p>Generated from everything above. TL;DR first, decisions with a DRI, two-way doors called out. Ready to paste into an issue or handbook page.</p>
+    </div>
+    <div class="panel doc">
+      <div class="doc-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="doc-name">async-update.md</span>
+        <button class="btn ghost" id="copy">Copy markdown</button></div>
+      <article id="doc" class="md"></article>
+    </div>
+  </section>
+
+  <section class="wrap section how">
+    <div class="sec-head"><h2>How it works</h2></div>
+    <div class="flow">
+      <div class="node">Sample files<small>requests, inventory, usage, prompts</small></div><i></i>
+      <div class="node">opsdesk.py<small>rules-first triage, optional LLM refine</small></div><i></i>
+      <div class="node">Outputs<small>labels, routes, savings, weekly update</small></div><i></i>
+      <div class="node hl">This page<small>same rulebook, in the browser</small></div>
+    </div>
+    <pre class="cmd"><code>git clone https://github.com/sayyedsama/ai-ops-demos && cd ai-ops-demos
+python3 ai-tool-ops-desk/opsdesk.py --today 2026-10-25   # CLI outputs
+python3 site/build.py && python3 -m http.server -d site    # this page</code></pre>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p><b>Independent portfolio demo.</b> Not affiliated with or endorsed by GitLab or any tool vendor named here. Tool names are used only to make the scenario realistic. Every request, seat count, price and person on this page is made up.</p>
+    <p>Standard-library Python, plain JS, no trackers, no keys. <a href="https://github.com/sayyedsama/ai-ops-demos">Source on GitHub</a>.</p>
+  </div>
+</footer>
+<script src="data.js"></script>
+<script src="triage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

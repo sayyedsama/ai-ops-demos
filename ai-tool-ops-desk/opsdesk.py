@@ -222,26 +222,148 @@ def overlaps(inventory: list[dict]) -> list[tuple[str, list[str]]]:
     return [(cap, tools) for cap, tools in sorted(by_cap.items()) if len(tools) > 1]
 
 
-def write_async_update(tickets, adopt, ov, prompts, outdir: Path, today: date) -> None:
+QUEUES = {
+    "access_request": "Access desk",
+    "issue": "Tool owner on-call",
+    "use_case": "Use-case backlog",
+    "data_hygiene": "Data hygiene queue",
+    "governance": "Data governance review",
+    "how_to": "Champions + prompt library",
+    "other": "Ops triage (human)",
+}
+
+
+def route(t: Ticket, inventory: list[dict], adopt: list[dict] | None = None) -> dict:
+    """Where a triaged ticket goes, who owns it, and the first reply the requester sees."""
+    owners = {r["tool"]: r["owner"] for r in inventory}
+    free = {a["tool"]: a["seats"] - a["active"] for a in (adopt or [])}
+    tool = t.tools[0] if t.tools else None
+    dri = owners.get(tool, "Ops triage") if tool else "Ops triage"
+    if t.category == "governance" or "review::data-governance" in t.labels:
+        queue, dri = QUEUES["governance"], "Privacy + Enterprise AI"
+        reply = "Thanks for checking first. Please hold off until data governance replies on this issue."
+    elif t.category == "access_request" and tool:
+        queue = QUEUES["access_request"]
+        spare = free.get(tool)
+        reply = (f"Seat request logged. {tool} has {spare} unused seats, so this is a quick approval from {dri}."
+                 if spare and spare > 0 else f"Seat request logged. {tool} is at capacity, so {dri} will check renewal options.")
+    elif t.category == "issue":
+        queue = QUEUES["issue"]
+        reply = f"Logged as {t.priority}. {dri} is on it" + (" now." if t.priority == "P1" else " and will update this issue.")
+    elif t.category == "use_case":
+        queue, dri = QUEUES["use_case"], "Enablement"
+        reply = "Great idea. It is in the use-case backlog; add the prompt or template you would start from."
+    elif t.category == "how_to":
+        queue, dri = QUEUES["how_to"], "AI champions"
+        reply = "Here is the prompt library entry and the champions channel. Someone will reply with an example."
+    elif t.category == "data_hygiene":
+        queue = QUEUES["data_hygiene"]
+        reply = "Thanks. The owner will merge duplicates and mark one source of truth."
+    else:
+        queue, dri = QUEUES["other"], "Ops triage"
+        reply = "Thanks. A person will take a look and ask a follow-up question if needed."
+    return {"queue": queue, "dri": dri, "reply": reply}
+
+
+def savings(inventory: list[dict], adopt: list[dict], headroom: float = 1.25) -> dict:
+    """Annual savings from consolidating overlapping tools and right-sizing underused seats."""
+    inv = {r["tool"]: r for r in inventory}
+    act = {a["tool"]: a for a in adopt}
+    cost = lambda tool: float(inv[tool].get("cost_per_seat_month") or 0)  # noqa: E731
+    moves, dropped = [], set()
+    for cap, tools in overlaps(inventory):
+        keep = max(tools, key=lambda x: act.get(x, {}).get("active", 0))
+        for d in tools:
+            if d == keep:
+                continue
+            dropped.add(d)
+            need = act[keep]["active"] + act[d]["active"]
+            extra = max(0, need - int(inv[keep]["seats"]))
+            amount = int(inv[d]["seats"]) * cost(d) * 12 - extra * cost(keep) * 12
+            moves.append({"kind": "consolidate", "capability": cap, "drop": d, "keep": keep, "annual": round(amount)})
+    for a in adopt:
+        if a["flag"] == "underused" and a["tool"] not in dropped and a["tool"] not in [m.get("keep") for m in moves]:
+            target = max(1, -(-int(a["active"] * headroom * 100) // 100))
+            free = a["seats"] - target
+            if free > 0:
+                moves.append({"kind": "right-size", "tool": a["tool"], "from": a["seats"], "to": target, "active": a["active"],
+                              "annual": round(free * cost(a["tool"]) * 12)})
+    spend = sum(int(r["seats"]) * cost(r["tool"]) * 12 for r in inventory)
+    return {"annual_spend": round(spend), "annual_savings": sum(m["annual"] for m in moves), "moves": moves}
+
+
+def usage_history(usage_path: Path) -> dict[str, list[dict]]:
+    hist: dict[str, list[dict]] = defaultdict(list)
+    with open(usage_path, newline="") as f:
+        for row in csv.DictReader(f):
+            hist[row["tool"]].append({"week": row["week"], "active": int(row["weekly_active_users"])})
+    return dict(hist)
+
+
+def site_data(here: Path | None = None, today: date | None = None) -> dict:
+    """Everything the static demo site needs, built from the same sample files and rules as the CLI."""
+    here = here or Path(__file__).parent
+    today = today or date(2026, 10, 25)
+    inv = load_inventory(here / "data/inventory.csv")
+    tickets = triage_all(load_requests(here / "data/requests.jsonl"), inv, today)
+    adopt = adoption(here / "data/usage.csv", inv)
+    ov = overlaps(inv)
+    prompts = prompt_health(here / "data/prompts.csv", today)
+    with __import__("tempfile").TemporaryDirectory() as d:
+        write_async_update(tickets, adopt, ov, prompts, Path(d), today, inv)
+        update = (Path(d) / "async-update.md").read_text()
+    for p in prompts:
+        p["age_days"] = (today - date.fromisoformat(p["last_reviewed"])).days if p["last_reviewed"] else None
+    return {
+        "today": today.isoformat(),
+        "sample": True,
+        "rules": {"categories": CATEGORIES, "urgent": URGENT, "sensitive": SENSITIVE, "queues": QUEUES},
+        "inventory": inv,
+        "requests": [{**asdict(t), **route(t, inv, adopt)} for t in tickets],
+        "adoption": adopt,
+        "history": usage_history(here / "data/usage.csv"),
+        "overlaps": [{"capability": c, "tools": t} for c, t in ov],
+        "savings": savings(inv, adopt),
+        "prompts": prompts,
+        "async_update": update,
+    }
+
+
+def _n(n: int, word: str, plural: str | None = None) -> str:
+    return f"{n} {word if n == 1 else (plural or word + 's')}"
+
+
+def write_async_update(tickets, adopt, ov, prompts, outdir: Path, today: date, inventory: list[dict] | None = None) -> None:
     """A weekly update written the way a handbook page reads: short, linkable, decisions up top."""
     p1 = [t for t in tickets if t.priority == "P1"]
     review = [t for t in tickets if t.needs_review]
     under = [a for a in adopt if a["flag"] == "underused"]
     bad_prompts = [p for p in prompts if p["status"] != "ok"]
+    owners = {r["tool"]: r["owner"] for r in inventory or []}
+    sav = savings(inventory, adopt) if inventory and all("cost_per_seat_month" in r for r in inventory) else None
     L = [f"# AI tooling ops: weekly async update ({today.isoformat()})", "",
          "## TL;DR", "",
-         f"- {len(tickets)} open requests; {len(p1)} P1, {len(review)} need a human decision.",
-         f"- {len(under)} tools under 40% seat use: {', '.join(a['tool'] for a in under) or 'none'}.",
-         f"- {len(ov)} consolidation candidate(s); {len(bad_prompts)} shared prompt(s)/agent(s) need an owner or review.", "",
-         "## Decisions needed (async, comment by Friday)", ""]
+         f"- {_n(len(tickets), 'open request')}; {len(p1)} P1, {len(review)} need a human decision.",
+         f"- {_n(len(under), 'tool')} under 40% seat use: {', '.join(a['tool'] for a in under) or 'none'}.",
+         f"- {_n(len(ov), 'consolidation candidate')}; {_n(len(bad_prompts), 'shared prompt or agent', 'shared prompts or agents')} need an owner or review."]
+    if sav and sav["annual_savings"]:
+        L.append(f"- About ${sav['annual_savings']:,} a year in seat savings available at renewal, and everyone keeps a tool that does the job.")
+    L += ["", "## Decisions needed (async, comment by Friday)", ""]
     n = 1
+    moves = {m["capability"]: m for m in (sav or {}).get("moves", []) if m["kind"] == "consolidate"}
     for cap, tools in ov:
-        L.append(f"{n}. **Consolidate {cap}?** {', '.join(tools)} overlap. Proposal: keep the higher-use tool, "
-                 "move seats over at renewal. DRI: [Tool owner]. Two-way door.")
+        m = moves.get(cap)
+        if m:
+            L.append(f"{n}. **Consolidate {cap}?** {', '.join(tools)} overlap. Proposal: keep {m['keep']} (more active users, "
+                     f"enough spare seats) and move {m['drop']} users over at renewal, saving about ${m['annual']:,} a year. "
+                     f"DRI: {owners.get(m['drop'], '[Tool owner]')} ({m['drop']} owner). Two-way door.")
+        else:
+            L.append(f"{n}. **Consolidate {cap}?** {', '.join(tools)} overlap. Proposal: keep the higher-use tool, "
+                     "move seats over at renewal. DRI: [Tool owner]. Two-way door.")
         n += 1
     for t in review:
         if t.category == "governance":
-            L.append(f"{n}. **{t.id}: {t.summary}** Needs a data-governance answer before anyone proceeds. DRI: [Enterprise AI / Privacy].")
+            L.append(f"{n}. **{t.id}: {t.summary}** Needs a data-governance answer before anyone proceeds. DRI: Privacy + Enterprise AI.")
             n += 1
     if n == 1:
         L.append("- None this week.")
@@ -252,6 +374,13 @@ def write_async_update(tickets, adopt, ov, prompts, outdir: Path, today: date) -
     L += [f"- **{a['tool']}**: {a['active']}/{a['seats']} seats active ({int(a['utilization']*100)}%, {a['trend']:+d} over the period), {a['flag']}." for a in adopt]
     L += ["", "## Prompt and agent registry", "", "Prompts are process: shared, versioned, owned.", ""]
     L += [f"- {p['name']} (owner: {p['owner'] or 'none'}, v{p['version'] or '?'}): {p['status']}" for p in prompts]
+    grow = sorted([a for a in adopt if a["trend"] > 0], key=lambda a: -a["trend"])
+    if grow:
+        g = grow[0]
+        L += ["", "## Rollout announcement draft (for the team channel)", "",
+              f"> {g['tool']} is now used by {g['active']} people each week, up {g['trend']} this month. "
+              "If you have not tried it yet, the prompt library has ready-to-use starters for account plans and renewal briefs. "
+              "Questions go in the champions channel, and seat requests take one short form."]
     L += ["", "## Next iteration", "",
           "- Smallest next step: auto-comment on aging access requests with what's missing.",
           "- Then: pull seat counts from the license source instead of a CSV.", "",
@@ -328,7 +457,7 @@ def main(argv: list[str] | None = None) -> int:
     adopt = adoption(a.usage, inv)
     ov = overlaps(inv)
     write_outputs(tickets, adopt, ov, a.out, today)
-    write_async_update(tickets, adopt, ov, prompt_health(a.prompts, today), a.out, today)
+    write_async_update(tickets, adopt, ov, prompt_health(a.prompts, today), a.out, today, inv)
     if a.gitlab_project:
         calls = label_calls(tickets, a.gitlab_project)
         if a.apply_labels:

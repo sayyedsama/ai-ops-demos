@@ -4,6 +4,8 @@ A working sample of the day-to-day work behind running a company's AI tools: sor
 requests, label them the GitLab way, show which tools people actually use, keep shared prompts
 owned, and write it all up as a short async update that reads like a handbook page.
 
+**Live demo:** https://sayyedsama.github.io/ai-ops-demos/ (the same rules running in the browser, see `../site/`).
+
 Built from scratch as a portfolio sample. All data in `data/` is made up. Tool names in the sample
 inventory are just realistic examples.
 
@@ -17,11 +19,12 @@ inventory are just realistic examples.
    - One-line summary with email addresses hidden
    - Anything unclear or sensitive is flagged for a human instead of guessed
 2. **Track adoption**: weekly active users vs seats, trend, and a flag (healthy, watch, underused).
-3. **Find overlap**: tools that do the same job, as consolidation candidates.
+3. **Find overlap and savings**: tools that do the same job become consolidation proposals, and
+   underused seats get a right-size suggestion, both with an annual dollar figure.
 4. **Check the prompt and agent registry**: every shared prompt, skill or agent should have an
    owner, a version and a recent review ("prompts are process").
 5. **Write it up**:
-   - `out/async-update.md`: TL;DR, decisions needed with a DRI, queue, adoption, registry, next iteration
+   - `out/async-update.md`: TL;DR, decisions needed with a DRI, queue, adoption, registry, a rollout announcement draft, next iteration
    - `out/dashboard.html`: one-page dashboard (published by GitLab Pages in CI)
    - `out/report.md`, `out/triaged.csv`: for an issue comment or a spreadsheet
 
