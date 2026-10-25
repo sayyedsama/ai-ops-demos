@@ -5,4 +5,5 @@
 0:20 to 0:32. Second terminal: `python3 send_samples.py`. Four requests come back labeled Access, Bug, Idea, Question.
 0:32 to 0:45. Open `out/sheet.csv` in a spreadsheet app. "This is the Google Sheet step: one clean row per request."
 0:45 to 0:53. `cat out/notifications.jsonl`. "And the channel ping. Urgent ones get the alarm icon. Set one variable and it posts to Slack."
-0:53 to 1:00. `python3 -m unittest discover -s tests`. "Tests cover the form, the webhook and bad input."
+0:45 to 0:53 (alt). `curl ... -H "X-Gitlab-Event: Issue Hook" -d @sample_gitlab_issue_hook.json`. "Same flow straight from a GitLab project webhook, with token check."
+0:53 to 1:00. `python3 -m unittest discover -s tests`. "Tests cover the form, both webhooks and bad input."

@@ -26,7 +26,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 OUT = Path(os.environ.get("FLOW_OUT", Path(__file__).parent / "out"))
-COLUMNS = ["timestamp", "request_id", "name", "team", "category", "urgency", "confidence", "summary", "status", "engine"]
+COLUMNS = ["timestamp", "request_id", "source", "name", "team", "category", "urgency", "confidence", "route_to", "summary", "status", "engine"]
+# Hub-and-spoke routing: platform questions go to the central AI team, function questions to that function's owner.
+ROUTES = {"Access": "IT / access requests", "Bug": "Platform team (tool owner)", "Idea": "Function AI owner (use-case backlog)",
+          "Question": "Champions channel / docs", "Other": "Ops triage (human)"}
 LOCK = threading.Lock()
 
 RULES = {
@@ -91,7 +94,7 @@ def append_row(row: dict) -> None:
 
 def notify(row: dict) -> dict:
     icon = ":rotating_light:" if row["urgency"] == "High" else ":inbox_tray:"
-    msg = {"text": f"{icon} New {row['category']} request from {row['team']} ({row['request_id']}): {row['summary']}"}
+    msg = {"text": f"{icon} New {row['category']} request from {row['team']} ({row['request_id']}) -> {row['route_to']}: {row['summary']}"}
     OUT.mkdir(parents=True, exist_ok=True)
     with LOCK, open(OUT / "notifications.jsonl", "a") as f:
         f.write(json.dumps(msg) + "\n")
@@ -105,6 +108,16 @@ def notify(row: dict) -> dict:
     return msg
 
 
+def from_gitlab_issue_hook(event: dict) -> dict:
+    """Turn a GitLab 'Issue Hook' webhook event into the intake payload."""
+    attrs = event.get("object_attributes", {})
+    user = event.get("user", {})
+    project = event.get("project", {})
+    return {"name": user.get("username", ""), "team": project.get("path_with_namespace", ""),
+            "message": f"{attrs.get('title', '')}. {attrs.get('description') or ''}".strip(),
+            "_source": f"gitlab:{project.get('path_with_namespace', '')}#{attrs.get('iid', '')}"}
+
+
 def process(payload: dict) -> dict:
     message = str(payload.get("message", "")).strip()
     if not message:
@@ -115,6 +128,8 @@ def process(payload: dict) -> dict:
         "request_id": "INT-" + uuid.uuid4().hex[:6].upper(),
         "name": str(payload.get("name", "")).strip()[:80] or "anonymous",
         "team": str(payload.get("team", "")).strip()[:80] or "unknown",
+        "source": payload.get("_source", "form"),
+        "route_to": ROUTES[c["category"]],
         "status": "needs review" if c["category"] == "Other" or c["confidence"] < 0.5 else "new",
         **c,
     }
@@ -154,7 +169,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, json.dumps({"error": "not found"}))
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0) or 0)).decode()
         try:
-            if "json" in self.headers.get("Content-Type", ""):
+            secret = os.environ.get("GITLAB_WEBHOOK_SECRET")
+            if self.headers.get("X-Gitlab-Event"):
+                if secret and self.headers.get("X-Gitlab-Token") != secret:
+                    return self._send(401, json.dumps({"error": "bad webhook token"}))
+                if self.headers["X-Gitlab-Event"] != "Issue Hook":
+                    return self._send(202, json.dumps({"ignored": self.headers["X-Gitlab-Event"]}))
+                payload = from_gitlab_issue_hook(json.loads(raw or "{}"))
+            elif "json" in self.headers.get("Content-Type", ""):
                 payload = json.loads(raw or "{}")
             else:
                 payload = {k: v[0] for k, v in urllib.parse.parse_qs(raw).items()}

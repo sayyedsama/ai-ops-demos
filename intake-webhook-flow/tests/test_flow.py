@@ -66,6 +66,29 @@ class EndToEnd(unittest.TestCase):
             self.post({"name": "C"})
         self.assertEqual(e.exception.code, 400)
 
+    def test_gitlab_issue_hook(self):
+        event = {"object_kind": "issue", "user": {"username": "jdoe"},
+                 "project": {"path_with_namespace": "field/ai-tools"},
+                 "object_attributes": {"iid": 7, "title": "Need a Claude seat", "description": "For a customer call today"}}
+        req = urllib.request.Request(self.base + "/intake", data=json.dumps(event).encode(),
+                                     headers={"Content-Type": "application/json", "X-Gitlab-Event": "Issue Hook"})
+        with urllib.request.urlopen(req) as r:
+            row = json.load(r)
+        self.assertEqual(row["source"], "gitlab:field/ai-tools#7")
+        self.assertEqual((row["category"], row["urgency"]), ("Access", "High"))
+        self.assertEqual(row["route_to"], "IT / access requests")
+
+    def test_gitlab_bad_token_rejected(self):
+        os.environ["GITLAB_WEBHOOK_SECRET"] = "s3cret"
+        try:
+            req = urllib.request.Request(self.base + "/intake", data=b"{}", headers={
+                "Content-Type": "application/json", "X-Gitlab-Event": "Issue Hook", "X-Gitlab-Token": "wrong"})
+            with self.assertRaises(urllib.error.HTTPError) as e:
+                urllib.request.urlopen(req)
+            self.assertEqual(e.exception.code, 401)
+        finally:
+            os.environ.pop("GITLAB_WEBHOOK_SECRET")
+
     def test_form_page(self):
         with urllib.request.urlopen(self.base + "/") as r:
             self.assertIn("<form", r.read().decode())

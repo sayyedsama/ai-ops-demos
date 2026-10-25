@@ -60,10 +60,35 @@ class Reports(unittest.TestCase):
     def test_end_to_end_outputs(self):
         with tempfile.TemporaryDirectory() as d:
             opsdesk.main(["--out", d, "--today", "2026-10-25"])
-            for f in ["report.md", "dashboard.html", "triaged.csv", "triaged.json"]:
+            for f in ["report.md", "dashboard.html", "triaged.csv", "triaged.json", "async-update.md"]:
                 self.assertTrue((Path(d) / f).exists(), f)
             data = json.loads((Path(d) / "triaged.json").read_text())
             self.assertEqual(len(data), 9)
+
+
+class GitLabFlavor(unittest.TestCase):
+    def test_label_plan_is_scoped_and_dry(self):
+        tk = t("Can I get a Claude seat?")
+        tk.id = "#42"
+        calls = opsdesk.label_calls([tk], "group/ai-ops", base="https://gitlab.example.com")
+        self.assertEqual(calls[0]["method"], "PUT")
+        self.assertTrue(calls[0]["url"].endswith("/projects/group%2Fai-ops/issues/42"))
+        self.assertIn("type::access_request", calls[0]["body"]["add_labels"])
+
+    def test_prompt_registry_flags_orphans_and_stale(self):
+        rows = {r["name"]: r["status"] for r in opsdesk.prompt_health(ROOT / "data/prompts.csv", TODAY)}
+        self.assertEqual(rows["Account plan first draft"], "ok")
+        self.assertIn("no owner", rows["Outbound sequence agent"])
+        self.assertIn("review overdue", rows["Outbound sequence agent"])
+        self.assertIn("unversioned", rows["QBR notes summarizer"])
+        self.assertIn("never reviewed", rows["Competitive talk track"])
+
+    def test_async_update_has_decisions(self):
+        with tempfile.TemporaryDirectory() as d:
+            opsdesk.main(["--out", d, "--today", "2026-10-25"])
+            text = (Path(d) / "async-update.md").read_text()
+        self.assertIn("## Decisions needed", text)
+        self.assertIn("Consolidate meeting notes?", text)
 
 
 if __name__ == "__main__":

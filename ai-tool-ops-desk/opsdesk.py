@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
 from dataclasses import dataclass, asdict, field
@@ -132,15 +133,64 @@ def triage_llm(t: Ticket) -> Ticket:
     return t
 
 
-def triage_all(tickets_path: Path, inventory: list[dict], today: date) -> list[Ticket]:
+def load_requests(path: Path) -> list[dict]:
+    return [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+
+
+def triage_all(raws: list[dict], inventory: list[dict], today: date) -> list[Ticket]:
     out = []
-    for line in tickets_path.read_text().splitlines():
-        if not line.strip():
-            continue
-        raw = json.loads(line)
+    for raw in raws:
         t = Ticket(id=raw["id"], created=raw["created"], requester_team=raw["team"], text=raw["text"])
         out.append(triage_llm(triage_rules(t, inventory, today)))
     return out
+
+
+def fetch_gitlab_issues(project: str, base: str | None = None) -> list[dict]:
+    """Read open issues from a GitLab project (read-only). Needs GITLAB_TOKEN with read_api."""
+    base = (base or os.environ.get("GITLAB_URL", "https://gitlab.com")).rstrip("/")
+    url = f"{base}/api/v4/projects/{urllib.parse.quote(project, safe='')}/issues?state=opened&per_page=100"
+    req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", "")})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        issues = json.load(r)
+    return [{"id": f"#{i['iid']}", "iid": i["iid"], "created": i["created_at"][:10],
+             "team": (i.get("author") or {}).get("username", "unknown"),
+             "text": f"{i['title']}. {i.get('description') or ''}"} for i in issues]
+
+
+def label_calls(tickets: list[Ticket], project: str, base: str | None = None) -> list[dict]:
+    """The API calls that would apply the suggested labels. Printed in dry-run mode."""
+    base = (base or os.environ.get("GITLAB_URL", "https://gitlab.com")).rstrip("/")
+    calls = []
+    for t in tickets:
+        if t.id.startswith("#"):
+            calls.append({"method": "PUT",
+                          "url": f"{base}/api/v4/projects/{urllib.parse.quote(project, safe='')}/issues/{t.id[1:]}",
+                          "body": {"add_labels": ",".join(t.labels)}})
+    return calls
+
+
+def apply_labels(calls: list[dict]) -> None:
+    for c in calls:
+        req = urllib.request.Request(c["url"], method="PUT", data=json.dumps(c["body"]).encode(),
+                                     headers={"PRIVATE-TOKEN": os.environ["GITLAB_TOKEN"], "Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=20).close()
+
+
+def prompt_health(path: Path, today: date, stale_days: int = 90) -> list[dict]:
+    """'Prompts are process': every shared prompt or agent needs an owner, a version and a recent review."""
+    rows = []
+    with open(path, newline="") as f:
+        for r in csv.DictReader(f):
+            issues = []
+            if not r["owner"].strip():
+                issues.append("no owner")
+            if not r["version"].strip():
+                issues.append("unversioned")
+            age = (today - date.fromisoformat(r["last_reviewed"])).days if r["last_reviewed"] else None
+            if age is None or age > stale_days:
+                issues.append("review overdue" if age else "never reviewed")
+            rows.append({**r, "status": "ok" if not issues else ", ".join(issues)})
+    return rows
 
 
 def adoption(usage_path: Path, inventory: list[dict]) -> list[dict]:
@@ -170,6 +220,43 @@ def overlaps(inventory: list[dict]) -> list[tuple[str, list[str]]]:
     for r in inventory:
         by_cap[r["capability"]].append(r["tool"])
     return [(cap, tools) for cap, tools in sorted(by_cap.items()) if len(tools) > 1]
+
+
+def write_async_update(tickets, adopt, ov, prompts, outdir: Path, today: date) -> None:
+    """A weekly update written the way a handbook page reads: short, linkable, decisions up top."""
+    p1 = [t for t in tickets if t.priority == "P1"]
+    review = [t for t in tickets if t.needs_review]
+    under = [a for a in adopt if a["flag"] == "underused"]
+    bad_prompts = [p for p in prompts if p["status"] != "ok"]
+    L = [f"# AI tooling ops: weekly async update ({today.isoformat()})", "",
+         "## TL;DR", "",
+         f"- {len(tickets)} open requests; {len(p1)} P1, {len(review)} need a human decision.",
+         f"- {len(under)} tools under 40% seat use: {', '.join(a['tool'] for a in under) or 'none'}.",
+         f"- {len(ov)} consolidation candidate(s); {len(bad_prompts)} shared prompt(s)/agent(s) need an owner or review.", "",
+         "## Decisions needed (async, comment by Friday)", ""]
+    n = 1
+    for cap, tools in ov:
+        L.append(f"{n}. **Consolidate {cap}?** {', '.join(tools)} overlap. Proposal: keep the higher-use tool, "
+                 "move seats over at renewal. DRI: [Tool owner]. Two-way door.")
+        n += 1
+    for t in review:
+        if t.category == "governance":
+            L.append(f"{n}. **{t.id}: {t.summary}** Needs a data-governance answer before anyone proceeds. DRI: [Enterprise AI / Privacy].")
+            n += 1
+    if n == 1:
+        L.append("- None this week.")
+    L += ["", "## Queue (top first)", "", "| Issue | Priority | Type | Summary |", "|---|---|---|---|"]
+    L += [f"| {t.id} | {t.priority} | {t.category} | {t.summary} |"
+          for t in sorted(tickets, key=lambda t: (t.priority, t.created))]
+    L += ["", "## Adoption", ""]
+    L += [f"- **{a['tool']}**: {a['active']}/{a['seats']} seats active ({int(a['utilization']*100)}%, {a['trend']:+d} over the period), {a['flag']}." for a in adopt]
+    L += ["", "## Prompt and agent registry", "", "Prompts are process: shared, versioned, owned.", ""]
+    L += [f"- {p['name']} (owner: {p['owner'] or 'none'}, v{p['version'] or '?'}): {p['status']}" for p in prompts]
+    L += ["", "## Next iteration", "",
+          "- Smallest next step: auto-comment on aging access requests with what's missing.",
+          "- Then: pull seat counts from the license source instead of a CSV.", "",
+          "_Generated by opsdesk.py from sample data. Edit freely; everything is in draft._"]
+    (outdir / "async-update.md").write_text("\n".join(L) + "\n")
 
 
 def write_outputs(tickets: list[Ticket], adopt: list[dict], ov: list, outdir: Path, today: date) -> None:
@@ -229,14 +316,28 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--inventory", default=here / "data/inventory.csv", type=Path)
     ap.add_argument("--usage", default=here / "data/usage.csv", type=Path)
     ap.add_argument("--out", default=here / "out", type=Path)
+    ap.add_argument("--prompts", default=here / "data/prompts.csv", type=Path)
     ap.add_argument("--today", default=None, help="YYYY-MM-DD, for repeatable runs")
+    ap.add_argument("--gitlab-project", help="Read open issues from this GitLab project (id or group/name) instead of the sample file")
+    ap.add_argument("--apply-labels", action="store_true", help="Actually write labels back to GitLab (default is a dry run)")
     a = ap.parse_args(argv)
     today = date.fromisoformat(a.today) if a.today else date.today()
     inv = load_inventory(a.inventory)
-    tickets = triage_all(a.tickets, inv, today)
+    raws = fetch_gitlab_issues(a.gitlab_project) if a.gitlab_project else load_requests(a.tickets)
+    tickets = triage_all(raws, inv, today)
     adopt = adoption(a.usage, inv)
-    write_outputs(tickets, adopt, overlaps(inv), a.out, today)
-    print(f"Triaged {len(tickets)} requests -> {a.out}/report.md, dashboard.html, triaged.csv")
+    ov = overlaps(inv)
+    write_outputs(tickets, adopt, ov, a.out, today)
+    write_async_update(tickets, adopt, ov, prompt_health(a.prompts, today), a.out, today)
+    if a.gitlab_project:
+        calls = label_calls(tickets, a.gitlab_project)
+        if a.apply_labels:
+            apply_labels(calls)
+            print(f"Applied labels to {len(calls)} issues")
+        else:
+            (a.out / "label-plan.json").write_text(json.dumps(calls, indent=2))
+            print(f"Dry run: {len(calls)} label updates planned -> {a.out}/label-plan.json")
+    print(f"Triaged {len(tickets)} requests -> {a.out}/async-update.md, report.md, dashboard.html, triaged.csv")
     return 0
 
 

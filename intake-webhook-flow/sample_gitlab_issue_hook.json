@@ -1,0 +1,4 @@
+{"object_kind": "issue", "event_type": "issue",
+ "user": {"username": "sample.user"},
+ "project": {"path_with_namespace": "field-enablement/ai-tools"},
+ "object_attributes": {"iid": 12, "title": "Relevance agent fails on long sequences", "description": "Error after step 4, blocking a customer follow-up today."}}

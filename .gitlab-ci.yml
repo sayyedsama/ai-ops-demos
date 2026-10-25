@@ -1,0 +1,33 @@
+# Runs both demos' tests on every push and publishes the ops dashboard with GitLab Pages.
+stages: [test, report, deploy]
+
+default:
+  image: python:3.12-slim
+
+test:opsdesk:
+  stage: test
+  script:
+    - cd ai-tool-ops-desk && python -m unittest discover -s tests -v
+
+test:intake:
+  stage: test
+  script:
+    - cd intake-webhook-flow && python -m unittest discover -s tests -v
+
+report:
+  stage: report
+  script:
+    - cd ai-tool-ops-desk && python opsdesk.py --today 2026-10-25 --out ../report
+  artifacts:
+    paths: [report/]
+    expire_in: 30 days
+
+pages:
+  stage: deploy
+  needs: [report]
+  script:
+    - mkdir -p public && cp report/dashboard.html public/index.html && cp report/async-update.md public/
+  artifacts:
+    paths: [public]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

@@ -25,6 +25,21 @@ cat out/notifications.jsonl
 python3 -m unittest discover -s tests -v
 ```
 
+### As a GitLab project webhook
+
+Point a project webhook (Settings > Webhooks, "Issues events") at `/intake`. The flow reads the
+`Issue Hook` event, checks `X-Gitlab-Token` against `GITLAB_WEBHOOK_SECRET` if you set one, and
+logs the issue with its source (`gitlab:group/project#iid`). Try it locally:
+
+```bash
+curl -X POST http://127.0.0.1:8787/intake -H 'Content-Type: application/json' \
+  -H 'X-Gitlab-Event: Issue Hook' -d @sample_gitlab_issue_hook.json
+```
+
+Each row also gets a `route_to` owner (IT for access, the tool owner for bugs, the function's AI
+owner for ideas, champions/docs for questions, a human for anything unclear), the hub-and-spoke
+pattern of a central platform team plus owners inside each function.
+
 Webhook call by hand:
 
 ```bash
@@ -37,6 +52,7 @@ curl -X POST http://127.0.0.1:8787/intake -H 'Content-Type: application/json' \
 | Variable | What it does |
 |---|---|
 | `FLOW_LLM_URL`, `FLOW_LLM_MODEL` | Any OpenAI-compatible endpoint, e.g. free local Ollama at `http://localhost:11434/v1/chat/completions`. Refines category, urgency and summary. Falls back to rules on any error. |
+| `GITLAB_WEBHOOK_SECRET` | Rejects GitLab webhook calls whose `X-Gitlab-Token` doesn't match. |
 | `NOTIFY_WEBHOOK_URL` | Also posts each notification to a Slack-compatible incoming webhook. |
 | `FLOW_OUT` | Where `sheet.csv` and `notifications.jsonl` go (default `out/`). |
 | `PORT` | Server port (default 8787). |
