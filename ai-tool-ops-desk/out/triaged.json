@@ -1,0 +1,176 @@
+[
+  {
+    "id": "REQ-101",
+    "created": "2026-10-19",
+    "requester_team": "Enterprise Sales",
+    "text": "Can I get a Claude seat? I have a customer demo Thursday and want to prep the talk track with it.",
+    "category": "access_request",
+    "priority": "P2",
+    "tools": [
+      "Claude"
+    ],
+    "labels": [
+      "type::access_request",
+      "priority::P2",
+      "tool::Claude",
+      "sla::aging"
+    ],
+    "summary": "Can I get a Claude seat?",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-102",
+    "created": "2026-10-23",
+    "requester_team": "Customer Success",
+    "text": "Glean search is not working for the renewal playbook folder, it returns an error every time. Blocking prep for a customer call today.",
+    "category": "issue",
+    "priority": "P1",
+    "tools": [
+      "Glean"
+    ],
+    "labels": [
+      "type::issue",
+      "priority::P1",
+      "tool::Glean"
+    ],
+    "summary": "Glean search is not working for the renewal playbook folder, it returns an error every...",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-103",
+    "created": "2026-10-22",
+    "requester_team": "Commercial Sales",
+    "text": "Idea: could we automate first-draft account plans with a Relevance agent using the template in the drive?",
+    "category": "use_case",
+    "priority": "P3",
+    "tools": [
+      "Relevance.ai"
+    ],
+    "labels": [
+      "type::use_case",
+      "priority::P3",
+      "tool::Relevance.ai",
+      "sla::aging"
+    ],
+    "summary": "Idea: could we automate first-draft account plans with a Relevance agent using the temp...",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-104",
+    "created": "2026-10-21",
+    "requester_team": "Solutions Architects",
+    "text": "There are three duplicate versions of the pricing FAQ dataset in the shared drive and Glean keeps surfacing the outdated one.",
+    "category": "data_hygiene",
+    "priority": "P3",
+    "tools": [
+      "Glean"
+    ],
+    "labels": [
+      "type::data_hygiene",
+      "priority::P3",
+      "tool::Glean",
+      "sla::aging"
+    ],
+    "summary": "There are three duplicate versions of the pricing FAQ dataset in the shared drive and G...",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-105",
+    "created": "2026-10-24",
+    "requester_team": "Partner Team",
+    "text": "How do I write a good prompt in Claude for summarizing partner QBR notes? Is there a guide?",
+    "category": "how_to",
+    "priority": "P3",
+    "tools": [
+      "Claude"
+    ],
+    "labels": [
+      "type::how_to",
+      "priority::P3",
+      "tool::Claude"
+    ],
+    "summary": "How do I write a good prompt in Claude for summarizing partner QBR notes?",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-106",
+    "created": "2026-10-20",
+    "requester_team": "Field Marketing",
+    "text": "We pay for both Notetaker X and Recap Bot. Do we need both? Please send me a license for whichever one stays.",
+    "category": "access_request",
+    "priority": "P2",
+    "tools": [
+      "Notetaker X",
+      "Recap Bot"
+    ],
+    "labels": [
+      "type::access_request",
+      "priority::P2",
+      "tool::Notetaker X",
+      "tool::Recap Bot",
+      "sla::aging"
+    ],
+    "summary": "We pay for both Notetaker X and Recap Bot.",
+    "needs_review": false,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-107",
+    "created": "2026-10-24",
+    "requester_team": "Enterprise Sales",
+    "text": "Is it OK to export customer data from Gong into Claude to draft a mutual action plan? Want to check before I do it.",
+    "category": "governance",
+    "priority": "P2",
+    "tools": [
+      "Claude",
+      "Gong"
+    ],
+    "labels": [
+      "type::governance",
+      "priority::P2",
+      "tool::Claude",
+      "tool::Gong",
+      "review::data-governance"
+    ],
+    "summary": "Is it OK to export customer data from Gong into Claude to draft a mutual action plan?",
+    "needs_review": true,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-108",
+    "created": "2026-10-25",
+    "requester_team": "Sales Development",
+    "text": "The new outbound workflow agent is slow and sometimes fails on long sequences, contact me at rep.name@example.com.",
+    "category": "issue",
+    "priority": "P2",
+    "tools": [],
+    "labels": [
+      "type::issue",
+      "priority::P2"
+    ],
+    "summary": "The new outbound workflow agent is slow and sometimes fails on long sequences, contact...",
+    "needs_review": true,
+    "engine": "rules"
+  },
+  {
+    "id": "REQ-109",
+    "created": "2026-10-25",
+    "requester_team": "Customer Success",
+    "text": "Something odd with my dashboard, numbers look off.",
+    "category": "other",
+    "priority": "P3",
+    "tools": [],
+    "labels": [
+      "type::other",
+      "priority::P3"
+    ],
+    "summary": "Something odd with my dashboard, numbers look off.",
+    "needs_review": true,
+    "engine": "rules"
+  }
+]

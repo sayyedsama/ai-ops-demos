@@ -1,0 +1,9 @@
+{"id":"REQ-101","created":"2026-10-19","team":"Enterprise Sales","text":"Can I get a Claude seat? I have a customer demo Thursday and want to prep the talk track with it."}
+{"id":"REQ-102","created":"2026-10-23","team":"Customer Success","text":"Glean search is not working for the renewal playbook folder, it returns an error every time. Blocking prep for a customer call today."}
+{"id":"REQ-103","created":"2026-10-22","team":"Commercial Sales","text":"Idea: could we automate first-draft account plans with a Relevance agent using the template in the drive?"}
+{"id":"REQ-104","created":"2026-10-21","team":"Solutions Architects","text":"There are three duplicate versions of the pricing FAQ dataset in the shared drive and Glean keeps surfacing the outdated one."}
+{"id":"REQ-105","created":"2026-10-24","team":"Partner Team","text":"How do I write a good prompt in Claude for summarizing partner QBR notes? Is there a guide?"}
+{"id":"REQ-106","created":"2026-10-20","team":"Field Marketing","text":"We pay for both Notetaker X and Recap Bot. Do we need both? Please send me a license for whichever one stays."}
+{"id":"REQ-107","created":"2026-10-24","team":"Enterprise Sales","text":"Is it OK to export customer data from Gong into Claude to draft a mutual action plan? Want to check before I do it."}
+{"id":"REQ-108","created":"2026-10-25","team":"Sales Development","text":"The new outbound workflow agent is slow and sometimes fails on long sequences, contact me at rep.name@example.com."}
+{"id":"REQ-109","created":"2026-10-25","team":"Customer Success","text":"Something odd with my dashboard, numbers look off."}

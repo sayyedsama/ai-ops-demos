@@ -1,0 +1,10 @@
+id,created,team,category,priority,tools,labels,needs_review,summary,engine
+REQ-101,2026-10-19,Enterprise Sales,access_request,P2,Claude,type::access_request priority::P2 tool::Claude sla::aging,False,Can I get a Claude seat?,rules
+REQ-102,2026-10-23,Customer Success,issue,P1,Glean,type::issue priority::P1 tool::Glean,False,"Glean search is not working for the renewal playbook folder, it returns an error every...",rules
+REQ-103,2026-10-22,Commercial Sales,use_case,P3,Relevance.ai,type::use_case priority::P3 tool::Relevance.ai sla::aging,False,Idea: could we automate first-draft account plans with a Relevance agent using the temp...,rules
+REQ-104,2026-10-21,Solutions Architects,data_hygiene,P3,Glean,type::data_hygiene priority::P3 tool::Glean sla::aging,False,There are three duplicate versions of the pricing FAQ dataset in the shared drive and G...,rules
+REQ-105,2026-10-24,Partner Team,how_to,P3,Claude,type::how_to priority::P3 tool::Claude,False,How do I write a good prompt in Claude for summarizing partner QBR notes?,rules
+REQ-106,2026-10-20,Field Marketing,access_request,P2,Notetaker X|Recap Bot,type::access_request priority::P2 tool::Notetaker X tool::Recap Bot sla::aging,False,We pay for both Notetaker X and Recap Bot.,rules
+REQ-107,2026-10-24,Enterprise Sales,governance,P2,Claude|Gong,type::governance priority::P2 tool::Claude tool::Gong review::data-governance,True,Is it OK to export customer data from Gong into Claude to draft a mutual action plan?,rules
+REQ-108,2026-10-25,Sales Development,issue,P2,,type::issue priority::P2,True,"The new outbound workflow agent is slow and sometimes fails on long sequences, contact...",rules
+REQ-109,2026-10-25,Customer Success,other,P3,,type::other priority::P3,True,"Something odd with my dashboard, numbers look off.",rules
